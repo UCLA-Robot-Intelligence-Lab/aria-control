@@ -1,0 +1,12 @@
+README.md
+setup.py
+aria_glasses/__init__.py
+aria_glasses/aria_glasses.py
+aria_glasses/default_config.yaml
+aria_glasses.egg-info/PKG-INFO
+aria_glasses.egg-info/SOURCES.txt
+aria_glasses.egg-info/dependency_links.txt
+aria_glasses.egg-info/requires.txt
+aria_glasses.egg-info/top_level.txt
+aria_glasses/eyetracking/inference/model/pretrained_weights/social_eyes_uncertainty_v1/config.yaml
+aria_glasses/eyetracking/inference/model/pretrained_weights/social_eyes_uncertainty_v1/weights.pth
