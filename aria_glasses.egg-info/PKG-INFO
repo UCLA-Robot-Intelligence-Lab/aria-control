@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.2
 Name: aria_glasses
 Version: 0.1.0
 Requires-Dist: numpy
@@ -6,3 +6,4 @@ Requires-Dist: opencv-python
 Requires-Dist: torch
 Requires-Dist: projectaria_client_sdk
 Requires-Dist: pyyaml
+Dynamic: requires-dist

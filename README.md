@@ -37,11 +37,25 @@ aria-doctor  # detect and resolve common issues connecting and streaming from th
 ## Run Streaming, Recording, or Gaze Inferring
 ### Connect your device
 If you connect glasses with computer via USB, there is one more step: run `aria auth pair` - open the Aria App on the phone - click "Approve".
-If you connect to the glasses with WiFi, make sure that your computer and the glasses are on the **same network** (or accessible).
+If you connect to the glasses with WiFi, make sure that your computer and the glasses are on the **same network** (or accessible). Then run
+```
+aria streaming start --interface wifi --device-ip YOUR_IP
+```
+to start streaming.
 
 ### Run your script
 Feel free to refer to the examples provided under `./examples`.
 
-## Frequent Q&A
-1. Q: I cannot start streaming.
-   A: Try to run `aria streaming start --interface wifi --device-ip YOUR_IP` and then run your file.
+Make sure you have a config file for your glasses under your working directory. If you put it under the same directory of the file you'll run and name it with `my_aria_config.yaml`, no need to pass in this argument.
+- streaming & visualize
+    ```
+    python examples/vis_stream.py --config_path YOUR_CONFIG_PATH
+    ```
+- streaming & visualize & recording
+    ```
+    python examples/vis_stream_record.py --config_path YOUR_CONFIG_PATH
+    ```
+- check gaze data
+    ```
+    python examples/check_gaze_data.py
+    ```

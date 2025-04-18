@@ -44,7 +44,8 @@ def update_subscription_config(subs_config, data_types):
     return subs_config
 
 
-def visualize_streaming(window, image, gaze_vis_params, gaze=np.array(([0, 0]), dtype=np.float32), with_gaze: bool = True, with_text: bool = True) -> None:
+# def visualize_streaming(window, image, gaze_vis_params, gaze=np.array(([0, 0]), dtype=np.float32), with_gaze: bool = True, with_text: bool = True) -> None:
+def visualize_streaming(window, image, gaze_vis_params, gaze=None, with_gaze: bool = True, with_text: bool = True) -> None:
     '''
     Visualize the streaming data from specified cameras with optional gaze overlay and text annotations.
     
@@ -62,11 +63,16 @@ def visualize_streaming(window, image, gaze_vis_params, gaze=np.array(([0, 0]), 
     gp_color, gp_radius, gp_thickness = gaze_vis_params
 
     if with_gaze:
-        cv2.circle(image, (int(gaze[0]), int(gaze[1])), gp_radius, gp_color, gp_thickness)
-
-        if with_text:
-            display_text(image, text=f'Gaze Coordinates: ({round(gaze[0], 4)}, {round(gaze[1], 4)})', position=(20, 90))
-        cv2.imshow(window, image)
-
+        if gaze is not None:
+            cv2.circle(image, (int(gaze[0]), int(gaze[1])), gp_radius, gp_color, gp_thickness)
+            if with_text:
+                display_text(image, text=f'Gaze Coordinates: ({round(gaze[0], 4)}, {round(gaze[1], 4)})', position=(20, 90))
+            cv2.imshow(window, image)
+    
+        else:
+            if with_text:
+                display_text(image, text='No Gaze Detected', position=(20, 90))
+            cv2.imshow(window, image)
+    
     else:
         cv2.imshow(window, image)

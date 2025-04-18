@@ -17,5 +17,6 @@ setup(
         'torch',
         'projectaria_client_sdk',
         'pyyaml',
+        'ffmpeg-python'
     ],
 )

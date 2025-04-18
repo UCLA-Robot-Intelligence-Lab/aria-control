@@ -42,6 +42,7 @@ dependencies:
       - exceptiongroup==1.2.2
       - executing==2.2.0
       - fastjsonschema==2.21.1
+      - ffmpeg-python==0.2.0
       - filelock==3.18.0
       - fonttools==4.57.0
       - fqdn==1.5.1

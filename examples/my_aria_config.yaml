@@ -1,6 +1,6 @@
-log_level: "Info"       # "Trace", "Debug" for more verbose logging
+log_level: Info       # "Trace", "Debug" for more verbose logging
 rgb_cam_res: [1408, 1408]   # [2880, 2880] or [704, 704]
-et_cam_res: [640, 480]      # [320, 240]
+et_cam_res: [240, 320]      # [320, 240]
 
 # streaming settings
 streaming:
@@ -12,6 +12,7 @@ streaming:
         - "rgb"
         - "et"
     rgb_stream_label: "camera-rgb"
+    framerate: 10
 
 # gaze settings
 gaze:

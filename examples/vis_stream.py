@@ -1,4 +1,5 @@
 import sys
+import os
 import argparse
 import time
 import cv2
@@ -40,14 +41,18 @@ args = parse_args()
 if args.update_iptables and sys.platform.startswith("linux"):
     update_iptables()
 device_ip = args.device_ip
-config_path = args.config_path
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+config_path = current_dir + '/' + args.config_path
+
 config_manager = ConfigManager(config_path)
 
-# Initialize AriaGlasses
+# initialize AriaGlasses
 glasses = AriaGlasses(device_ip, config_path)
 
 glasses.start_streaming()
 
+# initialize visual window
 window_name, window_size, window_position = read_vis_params(config_manager)
 rgb_window = window_name
 cv2.namedWindow(rgb_window, cv2.WINDOW_NORMAL)

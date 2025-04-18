@@ -12,6 +12,7 @@ streaming:
         - "rgb"
         - "et"
     rgb_stream_label: "camera-rgb"
+    framerate: 10
 
 # gaze settings
 gaze:

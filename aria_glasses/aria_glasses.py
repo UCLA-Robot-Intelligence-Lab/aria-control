@@ -4,12 +4,14 @@ import torch
 import numpy as np
 from typing import Optional, Dict, Any, Tuple
 import pkg_resources
+from datetime import datetime
 
 # from .utils.config_manager import ConfigManager
 from aria_glasses.utils.config_manager import ConfigManager
 from aria_glasses.utils.general import *
 from aria_glasses.utils.streaming import *
 from aria_glasses.eyetracking.inference import infer
+from aria_glasses.utils.recording import DataRecorder
 
 import aria.sdk as aria
 from projectaria_tools.core.sensor_data import ImageDataRecord
@@ -54,7 +56,8 @@ class AriaGlasses:
 
         self.rgb_stream_label = self.config_manager.get('streaming.rgb_stream_label', 'camera-rgb')
 
-        self.gaze = np.array(([0, 0]), dtype=np.float32)
+        # self.gaze = np.array(([0, 0]), dtype=np.float32)
+        self.gaze = None
         self._setup_gaze_inference()
         
 
@@ -156,18 +159,56 @@ class AriaGlasses:
         except Exception as e:
             print(f"Failed to stop streaming: {e}")
     
-    def start_recording(self, output_dir: str) -> bool:
+    def start_recording(self, base_dir: str) -> None:
         '''
-        Start recording data from Aria glasses.
+        Start recording RGB frames and gaze coordinates data from Aria glasses.
         '''
-        pass
+        if not self.stream_active:
+            print("Cannot start recording: Streaming is not active")
+            return
+
+        if base_dir is None:
+            print(f"Please specify the base saving folder.")
+            return
+
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_dir = os.path.join(base_dir, timestamp)
+            os.makedirs(output_dir, exist_ok=True)
+
+            frame_name = os.path.join(output_dir, 'rgbcam')
+            coord_name = os.path.join(output_dir, 'gaze')
+            framerate = self.config_manager.get('streaming.framerate', 10)
+
+            self.recorder = DataRecorder(
+                frame_name=frame_name,
+                coord_name=coord_name,
+                framerate=framerate
+            )
+
+            self.record_active = True
+            print(f"Recording started in folder: {output_dir}")
+        
+        except Exception as e:
+            self.record_active = False
+            print(f"Failed to start recording: {e}")
+            return
     
+    def record_frame(self, image: np.ndarray, gaze: np.ndarray) -> None:
+        self.recorder.record_frame(image, gaze)
+
     def stop_recording(self) -> bool:
         '''
         Stop recording data from Aria glasses.
         '''
-        pass
-    
+        if not self.record_active or not self.recorder:
+            print("Recording is not active.")
+            return
+        
+        self.recorder.end_recording()
+        self.record_active = False
+        self.recorder = None
+
     def get_frame_image(self, camera_id: str = 'et') -> Optional[np.ndarray]:
         '''
         Get the latest frame from the specified camera.
@@ -214,6 +255,10 @@ class AriaGlasses:
             return
         
         et_image = torch.tensor(et_image, device=self.model_device)
+        
+        if np.median(et_image) < 10:
+            # print("No gaze data available")
+            return None
 
         with torch.no_grad():
             preds, lower, upper = self.gaze_model.predict(et_image)
@@ -239,14 +284,14 @@ class AriaGlasses:
                 self.rgb_camera_calibration,
                 self.depth_m,
             )
-            
+
             # adjust for 2d image alignment
             if gaze_2d.any() is None:
-                return self.gaze
+                # print("No gaze data available")
+                return None
             else:
                 x, y = gaze_2d
                 rotated_x = self.rgb_cam_res[0] - y
                 rotated_y = x
                 self.gaze = np.array([rotated_x, rotated_y], dtype=np.float32)
-                print(f'gaze_2d: {self.gaze}')
                 return self.gaze
