@@ -51,7 +51,7 @@ config_manager = ConfigManager(config_path)
 glasses = AriaGlasses(device_ip, config_path)
 
 glasses.start_streaming()
-glasses.start_recording('./recordings')
+save_folder = glasses.start_recording('./recordings')
 
 # initialize visual window
 window_name, window_size, window_position = read_vis_params(config_manager)

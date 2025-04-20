@@ -168,7 +168,7 @@ class AriaGlasses:
             return
 
         if base_dir is None:
-            print(f"Please specify the base saving folder.")
+            print(f"Please specify the saving folder.")
             return
 
         try:
@@ -188,6 +188,8 @@ class AriaGlasses:
 
             self.record_active = True
             print(f"Recording started in folder: {output_dir}")
+
+            return output_dir
         
         except Exception as e:
             self.record_active = False
@@ -254,7 +256,7 @@ class AriaGlasses:
             print("No eyetracking image available")
             return
         
-        et_image = torch.tensor(et_image, device=self.model_device)
+        et_image = torch.tensor(et_image)
         
         if np.median(et_image) < 10:
             # print("No gaze data available")
@@ -262,9 +264,10 @@ class AriaGlasses:
 
         with torch.no_grad():
             preds, lower, upper = self.gaze_model.predict(et_image)
-            preds = preds.detach().cpu().numpy()
-            lower = lower.detach().cpu().numpy()
-            upper = upper.detach().cpu().numpy()
+            if self.model_device == 'cpu':
+                preds = preds.detach().cpu().numpy() 
+                lower = lower.detach().cpu().numpy()
+                upper = upper.detach().cpu().numpy()
 
         eye_gaze = EyeGaze
         eye_gaze.yaw = preds[0][0]

@@ -10,7 +10,7 @@ import random
 import subprocess
 
 class DataRecorder():
-    def __init__(self, frame_name="gaze_data", coord_name="gaze_data", framerate=10, post=False):
+    def __init__(self, frame_name="gaze_data", coord_name="gaze_data", framerate=10, post=False, frame_type="aria"):
         recording_id = random.randint(1, 10000)  # Generates a random integer between 1 and 10000 (inclusive)
         
         self.output_file_frame = frame_name + ".mp4"
@@ -20,8 +20,11 @@ class DataRecorder():
         self.post = post
 
         # Get frame dimensions from the first image. Assumes all are same size
-        self.frame_height, self.frame_width, _ = 1408, 1408, 3 # aria glasses outputs are 1408x1408x3 unless you explicitely change it
-
+        if frame_type == "aria":
+            self.frame_height, self.frame_width, _ = 1408, 1408, 3 # aria glasses outputs are 1408x1408x3 unless you explicitely change it
+        if frame_type == "realsense":
+            self.frame_height, self.frame_width, _ = 480, 640, 3
+            
         # Setup the ffmpeg pipe for video writing
         self.process = (
             ffmpeg
