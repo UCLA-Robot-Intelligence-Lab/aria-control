@@ -20,6 +20,8 @@ class DataRecorder():
 
         self.gazes = []
 
+        self.count = 0
+
         # Get frame dimensions from the first image. Assumes all are same size
         if cam_type == "aria":
             self.frame_height, self.frame_width, _ = 1408, 1408, 3
@@ -57,7 +59,8 @@ class DataRecorder():
 
         if gaze is None:
             gaze = np.array([np.nan, np.nan], dtype=float)
-        self.gazes.append(gaze)
+        self.gazes.append((self.count, gaze))
+        self.count += 1
 
     def end_recording(self):
         # Clean up and finish writing to video
