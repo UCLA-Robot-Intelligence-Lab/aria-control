@@ -65,10 +65,11 @@ gaze_vis_params = read_gaze_vis_params(config_manager)
 while not quit_keypress():
     gaze = glasses.infer_gaze(mode='2d')
     rgb_image = glasses.get_frame_image('rgb')
+    rgb_image_copy = rgb_image.copy()
 
     if rgb_image is not None:
         visualize_streaming(rgb_window, rgb_image, gaze_vis_params, gaze)
-        glasses.record_frame(rgb_image, gaze)
+        glasses.record_frame(rgb_image, rgb_image_copy, gaze)
 
 glasses.stop_recording()
 glasses.stop_streaming()

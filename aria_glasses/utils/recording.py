@@ -1,5 +1,6 @@
 """
 Author: Jonathan Ouyang
+Modified by: Xu Yan
 """
 
 import cv2
@@ -10,26 +11,26 @@ import random
 import subprocess
 
 class DataRecorder():
-    def __init__(self, frame_name="gaze_data", coord_name="gaze_data", framerate=10, post=False, frame_type="aria"):
-        recording_id = random.randint(1, 10000)  # Generates a random integer between 1 and 10000 (inclusive)
+    def __init__(self, video_name="rgb_cam", gaze_name="gaze_data", framerate=10, cam_type="aria"):
         
-        self.output_file_frame = frame_name + ".mp4"
-        self.output_file_gaze = coord_name + ".npy"
-        self.output_np_gaze = []
+        self.video_file1 = video_name + ".mp4"
+        self.video_file2 = video_name + "_no_gaze.mp4"
+        self.gaze_file = gaze_name + ".npy"
         self.framerate = int(framerate)
-        self.post = post
+
+        self.gazes = []
 
         # Get frame dimensions from the first image. Assumes all are same size
-        if frame_type == "aria":
-            self.frame_height, self.frame_width, _ = 1408, 1408, 3 # aria glasses outputs are 1408x1408x3 unless you explicitely change it
-        if frame_type == "realsense":
+        if cam_type == "aria":
+            self.frame_height, self.frame_width, _ = 1408, 1408, 3
+        if cam_type == "realsense":
             self.frame_height, self.frame_width, _ = 480, 640, 3
-            
+
         # Setup the ffmpeg pipe for video writing
-        self.process = (
+        self.process1 = (
             ffmpeg
             .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(self.frame_width, self.frame_height), framerate = self.framerate)
-            .output(self.output_file_frame, vcodec='libx264', pix_fmt='yuv420p') # Using h264 codec for mp4
+            .output(self.video_file1, vcodec='libx264', pix_fmt='yuv420p') # Using h264 codec for mp4
             .global_args('-nostats', '-loglevel', 'error')
             .overwrite_output()
             .run_async(pipe_stdin=True,
@@ -38,39 +39,36 @@ class DataRecorder():
                        )
         )
 
-        if post:
-            self.output_file_frame_post = frame_name + "_post_"+ str(recording_id) + ".mp4"
-            self.process2 = (
-                ffmpeg
-                .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(self.frame_width, self.frame_height), framerate = self.framerate)
-                .output(self.output_file_frame_post, vcodec='libx264', pix_fmt='yuv420p') # Using h264 codec for mp4
-                .overwrite_output()
-                .run_async(pipe_stdin=True)
-            )
+        self.process2 = (
+            ffmpeg
+            .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(self.frame_width, self.frame_height), framerate = self.framerate)
+            .output(self.video_file2, vcodec='libx264', pix_fmt='yuv420p') # Using h264 codec for mp4
+            .global_args('-nostats', '-loglevel', 'error')
+            .overwrite_output()
+            .run_async(pipe_stdin=True,
+                       pipe_stdout=subprocess.DEVNULL,
+                       pipe_stderr=subprocess.DEVNULL
+                       )
+        )
 
-    def record_frame(self, frame, coords):
-        self.process.stdin.write(frame.tobytes())
-        if coords is None:
-            coords = np.array([np.nan, np.nan], dtype=float)
-        self.output_np_gaze.append(coords)
+    def record_frame(self, frame, frame_no_gaze, gaze):
+        self.process1.stdin.write(frame.tobytes())
+        self.process2.stdin.write(frame_no_gaze.tobytes())
 
-    def record_frame_post(self, frame):
-        # no need to check, this function shouldn't be called if post is false
-        self.process2.stdin.write(frame.tobytes())
+        if gaze is None:
+            gaze = np.array([np.nan, np.nan], dtype=float)
+        self.gazes.append(gaze)
 
     def end_recording(self):
         # Clean up and finish writing to video
-        self.process.stdin.close()
-        self.process.wait()
+        self.process1.stdin.close()
+        self.process1.wait()
+        self.process2.stdin.close()
+        self.process2.wait()
+
         print(f'Recording Terminated.')
-        print(f"Video saved to {self.output_file_frame}")
+        print(f"Videos saved to {self.video_file1} and {self.video_file2}")
 
         # Finish writing gaze coordinate information
-        np.save(self.output_file_gaze, np.array(self.output_np_gaze, dtype=object))
-        print(f'Gaze coordinates saved to {self.output_file_gaze}')
-
-        if self.post:
-            self.process2.stdin.close()
-            self.process2.wait()
-            print(f'Recording with Post-Processing Terminated.')
-            print(f"Video saved to {self.output_file_frame_post}")
+        np.save(self.gaze_file, np.array(self.gazes, dtype=object))
+        print(f'Gaze coordinates saved to {self.gaze_file}')

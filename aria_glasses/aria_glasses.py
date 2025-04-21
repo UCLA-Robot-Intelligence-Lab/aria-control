@@ -196,8 +196,8 @@ class AriaGlasses:
             print(f"Failed to start recording: {e}")
             return
     
-    def record_frame(self, image: np.ndarray, gaze: np.ndarray) -> None:
-        self.recorder.record_frame(image, gaze)
+    def record_frame(self, image: np.ndarray, image_no_gaze: np.ndarray, gaze: np.ndarray) -> None:
+        self.recorder.record_frame(image, image_no_gaze, gaze)
 
     def stop_recording(self) -> bool:
         '''
