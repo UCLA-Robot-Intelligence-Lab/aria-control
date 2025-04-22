@@ -176,13 +176,13 @@ class AriaGlasses:
             output_dir = os.path.join(base_dir, timestamp)
             os.makedirs(output_dir, exist_ok=True)
 
-            frame_name = os.path.join(output_dir, 'rgbcam')
-            coord_name = os.path.join(output_dir, 'gaze')
+            video_name = os.path.join(output_dir, 'rgbcam')
+            gaze_name = os.path.join(output_dir, 'gaze')
             framerate = self.config_manager.get('streaming.framerate', 10)
 
             self.recorder = DataRecorder(
-                frame_name=frame_name,
-                coord_name=coord_name,
+                video_name=video_name,
+                gaze_name=gaze_name,
                 framerate=framerate
             )
 
