@@ -10,23 +10,13 @@ import time
 import random
 import subprocess
 
-class DataRecorder():
-    def __init__(self, video_name="rgb_cam", gaze_name="gaze_data", framerate=10, cam_type="aria"):
+class VideoRecorder():
+    def __init__(self, video_name="rgb_cam", framerate=10):
         
         self.video_file1 = video_name + ".mp4"
         self.video_file2 = video_name + "_no_gaze.mp4"
-        self.gaze_file = gaze_name + ".npy"
         self.framerate = int(framerate)
-
-        self.gazes = []
-
-        self.count = 0
-
-        # Get frame dimensions from the first image. Assumes all are same size
-        if cam_type == "aria":
-            self.frame_height, self.frame_width, _ = 1408, 1408, 3
-        if cam_type == "realsense":
-            self.frame_height, self.frame_width, _ = 480, 640, 3
+        self.frame_height, self.frame_width, _ = 1408, 1408, 3
 
         # Setup the ffmpeg pipe for video writing
         self.process1 = (
@@ -53,14 +43,9 @@ class DataRecorder():
                        )
         )
 
-    def record_frame(self, frame, frame_no_gaze, gaze):
+    def record_frame(self, frame, frame_no_gaze):
         self.process1.stdin.write(frame.tobytes())
         self.process2.stdin.write(frame_no_gaze.tobytes())
-
-        if gaze is None:
-            gaze = np.array([np.nan, np.nan], dtype=float)
-        self.gazes.append((self.count, gaze))
-        self.count += 1
 
     def end_recording(self):
         # Clean up and finish writing to video
@@ -72,6 +57,21 @@ class DataRecorder():
         print(f'Recording Terminated.')
         print(f"Videos saved to {self.video_file1} and {self.video_file2}")
 
-        # Finish writing gaze coordinate information
+
+class GazeRecorder():
+    def __init__(self, gaze_name="raw_gaze"):
+
+        self.gaze_file = gaze_name + ".npy"
+
+        self.gazes = []
+        self.count = 0
+
+    def record_frame(self, gaze):
+        if gaze is None:
+            gaze = np.array([np.nan, np.nan], dtype=float)
+        self.gazes.append((self.count, gaze))
+        self.count += 1
+
+    def end_recording(self):
         np.save(self.gaze_file, np.array(self.gazes, dtype=object))
         print(f'Gaze coordinates saved to {self.gaze_file}')

@@ -11,7 +11,7 @@ from aria_glasses.utils.config_manager import ConfigManager
 from aria_glasses.utils.general import *
 from aria_glasses.utils.streaming import *
 from aria_glasses.eyetracking.inference import infer
-from aria_glasses.utils.recording import DataRecorder
+from aria_glasses.utils.recording import VideoRecorder, GazeRecorder
 
 import aria.sdk as aria
 from projectaria_tools.core.sensor_data import ImageDataRecord
@@ -159,7 +159,7 @@ class AriaGlasses:
         except Exception as e:
             print(f"Failed to stop streaming: {e}")
     
-    def start_recording(self, base_dir: str) -> None:
+    def start_recording(self, save_dir: str, natural=False) -> None:
         '''
         Start recording RGB frames and gaze coordinates data from Aria glasses.
         '''
@@ -167,29 +167,30 @@ class AriaGlasses:
             print("Cannot start recording: Streaming is not active")
             return
 
-        if base_dir is None:
+        if save_dir is None:
             print(f"Please specify the saving folder.")
             return
 
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_dir = os.path.join(base_dir, timestamp)
-            os.makedirs(output_dir, exist_ok=True)
+            save_dir = str(save_dir)
+            video_name = os.path.join(save_dir, 'rgb_cam')
+            gaze_name = os.path.join(save_dir, 'raw_gaze')
+            if natural:
+                video_name = video_name + '_natural'
+                gaze_name = gaze_name + '_natural'
 
-            video_name = os.path.join(output_dir, 'rgbcam')
-            gaze_name = os.path.join(output_dir, 'gaze')
             framerate = self.config_manager.get('streaming.framerate', 10)
 
-            self.recorder = DataRecorder(
+            self.video_recorder = VideoRecorder(
                 video_name=video_name,
-                gaze_name=gaze_name,
                 framerate=framerate
+            )
+            self.gaze_recorder = GazeRecorder(
+                gaze_name=gaze_name
             )
 
             self.record_active = True
-            print(f"Recording started in folder: {output_dir}")
-
-            return output_dir
+            print(f"Aria recording started")
         
         except Exception as e:
             self.record_active = False
@@ -197,19 +198,20 @@ class AriaGlasses:
             return
     
     def record_frame(self, image: np.ndarray, image_no_gaze: np.ndarray, gaze: np.ndarray) -> None:
-        self.recorder.record_frame(image, image_no_gaze, gaze)
+        self.video_recorder.record_frame(image, image_no_gaze)
+        self.gaze_recorder.record_frame(gaze)
 
     def stop_recording(self) -> bool:
         '''
         Stop recording data from Aria glasses.
         '''
-        if not self.record_active or not self.recorder:
+        if not self.record_active:
             print("Recording is not active.")
             return
         
-        self.recorder.end_recording()
+        self.video_recorder.end_recording()
+        self.gaze_recorder.end_recording()
         self.record_active = False
-        self.recorder = None
 
     def get_frame_image(self, camera_id: str = 'et') -> Optional[np.ndarray]:
         '''

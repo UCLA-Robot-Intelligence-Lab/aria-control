@@ -6,4 +6,5 @@ Requires-Dist: opencv-python
 Requires-Dist: torch
 Requires-Dist: projectaria_client_sdk
 Requires-Dist: pyyaml
+Requires-Dist: ffmpeg-python
 Dynamic: requires-dist

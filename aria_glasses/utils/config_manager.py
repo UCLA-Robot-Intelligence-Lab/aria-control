@@ -21,7 +21,7 @@ class ConfigManager:
                                        searches for config files automatically.
         '''
         self.config_path = config_path or get_config_path()
-        self.is_default = self.config_path.endswith("default_config.yaml")
+        self.is_default = str(self.config_path).endswith("default_config.yaml")
         self.config = self._load_config()
         
     def _load_config(self) -> Dict[str, Any]:
