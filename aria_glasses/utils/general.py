@@ -117,3 +117,7 @@ def quit_keypress():
     # Press ESC, 'q'
     return key == 27 or key == ord("q")
 
+def start_keypress():
+    key = cv2.waitKey(1)
+    # Press 'p'
+    return key == ord("p")
