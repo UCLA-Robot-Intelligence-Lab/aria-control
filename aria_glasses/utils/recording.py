@@ -11,12 +11,12 @@ import random
 import subprocess
 
 class VideoRecorder():
-    def __init__(self, video_name="rgb_cam", framerate=10):
+    def __init__(self, video_name="rgb_cam", framerate=10, frame_height=1408, frame_width=1408):
         
         self.video_file1 = video_name + ".mp4"
         self.video_file2 = video_name + "_no_gaze.mp4"
         self.framerate = int(framerate)
-        self.frame_height, self.frame_width, _ = 1408, 1408, 3
+        self.frame_height, self.frame_width, _ = frame_height, frame_width, 3
 
         # Setup the ffmpeg pipe for video writing
         self.process1 = (

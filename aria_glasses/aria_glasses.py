@@ -15,7 +15,7 @@ from aria_glasses.utils.recording import VideoRecorder, GazeRecorder
 
 import aria.sdk as aria
 from projectaria_tools.core.sensor_data import ImageDataRecord
-from projectaria_tools.core.calibration import device_calibration_from_json_string
+from projectaria_tools.core.calibration import device_calibration_from_json_string, distort_by_calibration, get_linear_camera_calibration
 from projectaria_tools.core.mps.utils import get_gaze_vector_reprojection
 from projectaria_tools.core.mps import EyeGaze, get_eyegaze_point_at_depth
 import pdb
@@ -59,7 +59,6 @@ class AriaGlasses:
         # self.gaze = np.array(([0, 0]), dtype=np.float32)
         self.gaze = None
         self._setup_gaze_inference()
-        
 
     def _setup_logging(self) -> None:
         if self.log_level=='Info':
@@ -121,6 +120,7 @@ class AriaGlasses:
                 sensors_calib_json = streaming_manager.sensors_calibration()
                 self.device_calibration = device_calibration_from_json_string(sensors_calib_json)
                 self.rgb_camera_calibration = self.device_calibration.get_camera_calib(self.rgb_stream_label)
+                self.dist_calib = get_linear_camera_calibration(512, 512, 150, self.rgb_stream_label)
 
                 # update subs_config
                 self.data_types = self.config_manager.get('streaming.data_types', [])
@@ -128,9 +128,21 @@ class AriaGlasses:
                 subs_config = update_subscription_config(subs_config, self.data_types)
                 self.streaming_client.subscription_config = subs_config
 
+                # Focal lengths and principal point
+                fx, fy = self.rgb_camera_calibration.get_focal_lengths()
+                cx, cy = self.rgb_camera_calibration.get_principal_point()
+                self.distortion = np.zeros(8).reshape(-1,1) # self.rgb_camera_calibration.projection_params()[3:9]
+                self.intrinsics = np.array([[fx, 0, cx],
+                                            [0, fy, cy],
+                                            [0, 0, 1]])
+                # print(f"fx: {fx}, fy: {fy}, cx: {cx}, cy: {cy}")
+                # print("Distortion params:", self.distortion)
+
                 # create and attach observer
                 self.observer = StreamingClientObserver()
+                #print(self.observer)
                 self.streaming_client.set_streaming_client_observer(self.observer)
+                #print(self.streaming_client)
 
                 # start listening
                 self.streaming_client.subscribe()
@@ -190,7 +202,7 @@ class AriaGlasses:
             )
 
             self.record_active = True
-            print(f"Aria recording started")
+            print(f"Aria recording started============================================================")
         
         except Exception as e:
             self.record_active = False
@@ -255,7 +267,8 @@ class AriaGlasses:
 
         et_image = self.get_frame_image('et')
         if et_image is None:
-            print("No eyetracking image available")
+            # print("No eyetracking image available")
+            # print(self.observer.images.get(aria.CameraId.EyeTrack))
             return
         
         et_image = torch.tensor(et_image)
@@ -300,3 +313,8 @@ class AriaGlasses:
                 rotated_y = x
                 self.gaze = np.array([rotated_x, rotated_y], dtype=np.float32)
                 return self.gaze
+    
+    def get_undistorted_image(self, dist_image):
+        undist_image = distort_by_calibration(dist_image, self.dist_calib, self.rgb_camera_calibration)
+        return undist_image
+
