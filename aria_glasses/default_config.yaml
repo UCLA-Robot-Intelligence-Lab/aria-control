@@ -1,3 +1,5 @@
+device-ip: xxx.xxx.xx.xx
+
 log_level: Info       # "Trace", "Debug" for more verbose logging
 rgb_cam_res: [1408, 1408]   # [2880, 2880] or [704, 704]
 et_cam_res: [240, 320]      # [320, 240]
@@ -19,7 +21,7 @@ gaze:
     depth_m: 1.0            # depth in meters for gaze projection
     history_size: 100
 
-# Visualization settings
+# visualization settings
 visualization:
     window_name: "rgb"
     window_size: [1024, 1024]

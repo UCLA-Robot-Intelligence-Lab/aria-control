@@ -35,27 +35,27 @@ aria-doctor  # detect and resolve common issues connecting and streaming from th
 3. `pip install -e .`
 
 ## Run Streaming, Recording, or Gaze Inferring
-### Connect your device
-If you connect glasses with computer via USB, there is one more step: run `aria auth pair` - open the Aria App on the phone - click "Approve".
-If you connect to the glasses with WiFi, make sure that your computer and the glasses are on the **same network** (or accessible). Then run
-```
-aria streaming start --interface wifi --device-ip YOUR_IP
-```
-to start streaming.
+### Connect your device via wifi
+1. run `aria auth pair` - open the Aria App on the phone - click "Approve".
+2. make sure that your computer and the glasses are on the **same network** (or accessible). Then run
+    ```
+    aria streaming start --interface wifi --device-ip YOUR_IP
+    ```
+    to start streaming.
 
 ### Run your script
 Feel free to refer to the examples provided under `./examples`.
 
-Make sure you have a config file for your glasses under your working directory. If you put it under the same directory of the file you'll run and name it with `my_aria_config.yaml`, no need to pass in this argument.
-- streaming & visualize
+**Make sure you have a config file for your glasses under your working directory.** You can copy the template from `aria_glasses/default_config.yaml`. If you put it under the same directory of the file you'll run and name it with `config.yaml`, no need to pass in this argument.
+- visualize live streaming
     ```
-    python examples/vis_stream.py --config_path YOUR_CONFIG_PATH
+    python examples/stream.py --config_path YOUR_CONFIG_PATH
     ```
-- streaming & visualize & recording
+- visualize live streaming & record
     ```
-    python examples/vis_stream_record.py --config_path YOUR_CONFIG_PATH
+    python examples/stream_n_record.py --config_path YOUR_CONFIG_PATH
     ```
 - check gaze data
     ```
-    python examples/check_gaze_data.py
+    python examples/check_recorded_gaze.py
     ```

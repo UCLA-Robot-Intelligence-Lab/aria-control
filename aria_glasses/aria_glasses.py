@@ -1,4 +1,5 @@
 import os
+import sys
 import cv2
 import torch
 import numpy as np
@@ -18,7 +19,6 @@ from projectaria_tools.core.sensor_data import ImageDataRecord
 from projectaria_tools.core.calibration import device_calibration_from_json_string, distort_by_calibration, get_linear_camera_calibration
 from projectaria_tools.core.mps.utils import get_gaze_vector_reprojection
 from projectaria_tools.core.mps import EyeGaze, get_eyegaze_point_at_depth
-import pdb
 
 
 
@@ -30,20 +30,24 @@ class AriaGlasses:
     streaming data, recording sessions, and processing gaze data.
     '''
     def __init__(self, 
-                 device_ip: Optional[str] = None, 
                  config_path: Optional[str] = pkg_resources.resource_filename('aria_glasses', 'default_config.yaml')
                  ) -> None:
         '''
-        Initialize the streaming client with optional device IP, config path, and visualization settings.
+        Initialize the streaming client with device IP, config path, and visualization settings.
         
         Args:
-            device_ip (Optional[str]): IP address of the Aria device. If None, will use default connection.
             config_path (Optional[str]): Path to configuration file. If None, will use default settings.
-            visualize (bool): Whether to enable visualization. Defaults to True.
         '''
         self.config_manager = ConfigManager(config_path)
         
-        self.device_ip = device_ip
+        self.device_ip = self.config_manager.get('device-ip', None)
+        print(self.device_ip)
+        if not self.device_ip:
+            raise ValueError("Please specify your Aria device ip in the config file")
+
+        if sys.platform.startswith("linux"):
+            update_iptables()
+
         self.log_level = self.config_manager.get('log_level')
         self._setup_logging()
 
@@ -69,9 +73,6 @@ class AriaGlasses:
             aria.set_log_level(aria.Level.Trace)
 
     def _setup_gaze_inference(self) -> None:
-        '''
-        Set up the gaze inference model using configuration settings.
-        '''
         model_weights = pkg_resources.resource_filename(
             'aria_glasses',
             'eyetracking/inference/model/pretrained_weights/social_eyes_uncertainty_v1/weights.pth'
@@ -104,7 +105,7 @@ class AriaGlasses:
             self.connected = False
             print(f"Aria connection failed: {e}")
 
-    def start_streaming(self) -> bool:
+    def start_streaming(self, live_view=True) -> bool:
         '''
         Start streaming data from Aria glasses. Subscribes to RGB and EyeTrack streams.
         '''
@@ -116,7 +117,7 @@ class AriaGlasses:
                 streaming_manager = self.device.streaming_manager
                 self.streaming_client = aria.StreamingClient()
                 
-                # # device calibration
+                # device calibration
                 sensors_calib_json = streaming_manager.sensors_calibration()
                 self.device_calibration = device_calibration_from_json_string(sensors_calib_json)
                 self.rgb_camera_calibration = self.device_calibration.get_camera_calib(self.rgb_stream_label)
@@ -128,31 +129,22 @@ class AriaGlasses:
                 subs_config = update_subscription_config(subs_config, self.data_types)
                 self.streaming_client.subscription_config = subs_config
 
-                # Focal lengths and principal point
-                fx, fy = self.rgb_camera_calibration.get_focal_lengths()
-                cx, cy = self.rgb_camera_calibration.get_principal_point()
-                self.distortion = np.zeros(8).reshape(-1,1) # self.rgb_camera_calibration.projection_params()[3:9]
-                self.intrinsics = np.array([[fx, 0, cx],
-                                            [0, fy, cy],
-                                            [0, 0, 1]])
-                # print(f"fx: {fx}, fy: {fy}, cx: {cx}, cy: {cy}")
-                # print("Distortion params:", self.distortion)
-
                 # create and attach observer
                 self.observer = StreamingClientObserver()
-                #print(self.observer)
                 self.streaming_client.set_streaming_client_observer(self.observer)
-                #print(self.streaming_client)
 
                 # start listening
                 self.streaming_client.subscribe()
                 self.stream_active = True
                 print("Start listening to image data")
 
+                if live_view:
+                    self.stream_viewer = StreamViewer(self.config_manager)
+
             except Exception as e:
                 self.stream_active = False
                 print(f"Failed to start streaming: {e}")
-        
+
     def stop_streaming(self) -> bool:
         '''
         Stop streaming data from Aria glasses.
@@ -213,6 +205,9 @@ class AriaGlasses:
         self.video_recorder.record_frame(image, image_no_gaze)
         self.gaze_recorder.record_frame(gaze)
 
+    def view_frame(self, image: np.ndarray, gaze: np.ndarray, with_gaze=True, with_text=True) -> None:
+        self.stream_viewer.update(image, gaze, with_gaze, with_text)
+
     def stop_recording(self) -> bool:
         '''
         Stop recording data from Aria glasses.
@@ -254,12 +249,16 @@ class AriaGlasses:
         Process gaze data using the current frame.
         
         Args:
-            mode (str): Gaze processing mode ('2d' or '3d')
-                    '2d' - 2D gaze vector reprojection with rotated angle aligning with rgb image
-                    '3d' - 3D gaze point in CPF
+            mode (str): Gaze processing mode ('in_rgb' or 'raw')
+                    'in_rgb' - 2D gaze vector reprojection with rotated angle aligning with rgb image
+                    'raw' - 3D gaze point in CPF
 
         Returns:
             Array[np.ndarray]: Processed frame with gaze visualization
+
+        Note:
+            Details of function get_gaze_vector_reprojection: 
+                https://github.com/facebookresearch/projectaria_tools/blob/7f6581c855c00be2c9f9f8c970e4dbe48aee85bd/projectaria_tools/core/mps/utils.py#L146
         '''
         if not self.stream_active:
             print("Cannot infer gaze: Streaming is not active")
@@ -290,11 +289,13 @@ class AriaGlasses:
 
         self.depth_m = self.config_manager.get('gaze.depth_m', 1.0)
 
-        if mode == '3d':
-            self.gaze = get_eyegaze_point_at_depth(eye_gaze.yaw, eye_gaze.pitch, self.depth_m)
+        # print(f"{eye_gaze.yaw}, {eye_gaze.pitch, 3}, {self.depth_m}")
+        # print(get_eyegaze_point_at_depth(eye_gaze.yaw, eye_gaze.pitch, self.depth_m))
+        if mode == 'raw':
+            self.gaze = get_eyegaze_point_at_depth(eye_gaze.yaw, eye_gaze.pitch, self.depth_m)      # left-to-right saccade, up-to-down saccade
             return self.gaze
         
-        if mode == '2d':
+        if mode == 'in_rgb':
             gaze_2d = get_gaze_vector_reprojection(
                 eye_gaze,
                 self.rgb_stream_label,
@@ -318,3 +319,14 @@ class AriaGlasses:
         undist_image = distort_by_calibration(dist_image, self.dist_calib, self.rgb_camera_calibration)
         return undist_image
 
+    def get_rgb_camera_intrinsics_and_distortion(self) -> Tuple[np.ndarray, np.ndarray]:
+
+        fx, fy = self.rgb_camera_calibration.get_focal_lengths()
+        cx, cy = self.rgb_camera_calibration.get_principal_point()
+
+        self.intrinsics = np.array([[fx, 0, cx],
+                                    [0, fy, cy],
+                                    [0, 0, 1]])
+        self.distortion = self.rgb_camera_calibration.projection_params()[3:8]  # k1, k2, k3, p1, p2
+
+        return self.intrinsics, self.distortion
