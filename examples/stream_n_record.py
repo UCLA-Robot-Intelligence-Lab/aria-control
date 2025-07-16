@@ -50,7 +50,7 @@ if __name__ == "__main__":
     glasses.start_recording(trial_path)
 
     while not quit_keypress():
-        gaze = glasses.infer_gaze(mode='in_rgb')
+        gaze = glasses.get_gaze_rgb()
         rgb_image = glasses.get_frame_image('rgb')
 
         if rgb_image is not None:
