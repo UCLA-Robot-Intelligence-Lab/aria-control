@@ -85,6 +85,9 @@ class AriaGlasses:
         self.model_device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.gaze_model = infer.EyeGazeInference(model_weights, model_config, self.model_device)
 
+        torch.set_num_threads(1)
+
+
     def _get_calibration(self, streaming_manager):
         # device calibration
         sensors_calib_json = streaming_manager.sensors_calibration()
@@ -288,10 +291,10 @@ class AriaGlasses:
 
         with torch.no_grad():
             preds, lower, upper = self.gaze_model.predict(et_image)
-            if self.model_device == 'cpu':
-                preds = preds.detach().cpu().numpy() 
-                lower = lower.detach().cpu().numpy()
-                upper = upper.detach().cpu().numpy()
+
+            preds = preds.detach().cpu().numpy() 
+            # lower = lower.detach().cpu().numpy()
+            # upper = upper.detach().cpu().numpy()
 
         self.eye_gaze = EyeGaze
     
