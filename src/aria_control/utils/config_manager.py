@@ -157,3 +157,24 @@ def get_config_path() -> str:
         
     # Return default config path (now in the root aria_glasses directory)
     return str(Path(__file__).parent.parent / "default_config.yaml")
+
+
+def read_gaze_vis_params(config_manager) -> Dict[str, Any]:
+    '''
+    Read gaze visualization parameters from configuration.
+    '''
+    color = tuple(config_manager.get('visualization.gaze_point_color', [0, 255, 0]))
+    radius = config_manager.get('visualization.gaze_point_radius', 5)
+    thickness = config_manager.get('visualization.gaze_point_thickness', 10)
+
+    return [color, radius, thickness]
+
+
+def read_vis_params(config_manager) -> Dict[str, Any]:
+    '''
+    Read visualization parameters from configuration.
+    '''
+    name = config_manager.get('visualization.window_name', 'Aria RGB')
+    size = config_manager.get('visualization.window_size', [1024, 1024])
+    position = config_manager.get('visualization.window_position', [50, 50])
+    return name, size, position

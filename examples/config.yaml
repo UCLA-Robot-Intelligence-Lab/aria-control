@@ -1,4 +1,4 @@
-device-ip: 192.168.0.21
+device-ip: 192.168.1.187
 
 log_level: Info       # "Trace", "Debug" for more verbose logging
 rgb_cam_res: [1408, 1408]   # [2880, 2880] or [704, 704]

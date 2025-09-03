@@ -1,9 +1,10 @@
 import os
 import argparse
-from aria_glasses import AriaGlasses
-from aria_glasses.utils.general import quit_keypress
 from datetime import datetime
 from pathlib import Path
+from aria_control.aria_glasses import AriaGlasses
+from aria_control.utils.general import quit_keypress
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()

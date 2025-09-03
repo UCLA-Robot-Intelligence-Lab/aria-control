@@ -2,7 +2,7 @@ import numpy as np
 from projectaria_tools.core.sensor_data import ImageDataRecord
 import aria.sdk as aria
 import cv2
-from aria_glasses.utils.general import *
+from .general import *
 
 
 class StreamingClientObserver:

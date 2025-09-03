@@ -89,12 +89,6 @@ def main():
         # Initializing Rerun viewer
         rr.init("MPS Data Viewer", spawn=True)
 
-    #
-    # Go over EyeGaze data
-    # - Run Inference
-    # - Log data to plot, a 3D vector and image reprojection on a depth proxy
-    #
-
     eye_gaze_inference_results = []
     eye_gaze_inference_results.append(
         [

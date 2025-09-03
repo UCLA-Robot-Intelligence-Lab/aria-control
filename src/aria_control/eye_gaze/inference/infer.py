@@ -69,9 +69,7 @@ class EyeGazeInference:
             self.model_checkpoint_path,
         )
 
-        # print(f"Initialized network weights from:\n{self.model_checkpoint_path}")
-        # print(" ******************MODEL LOADED AND INIT*******************")
-        print(f"Gaze inference model loaded successfully")
+        # print(f"Gaze inference model loaded successfully")
         # Make Data parallel and put on GPU
         if torch.cuda.is_available() and self.device != "cpu":
             model = model.cuda(self.device)

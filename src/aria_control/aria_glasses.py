@@ -4,15 +4,15 @@ import cv2
 import torch
 import numpy as np
 from typing import Optional, Dict, Any, Tuple
-import pkg_resources
 from datetime import datetime
+from importlib import resources
 
 # from .utils.config_manager import ConfigManager
-from aria_glasses.utils.config_manager import ConfigManager
-from aria_glasses.utils.general import *
-from aria_glasses.utils.streaming import *
-from aria_glasses.eyetracking.inference import infer
-from aria_glasses.utils.recording import VideoRecorder, GazeRecorder
+from .utils.config_manager import ConfigManager
+from .utils.general import *
+from .utils.streaming import *
+from .eye_gaze.inference import infer
+from .utils.recording import VideoRecorder, GazeRecorder
 
 import aria.sdk as aria
 from projectaria_tools.core.sensor_data import ImageDataRecord
@@ -29,15 +29,17 @@ class AriaGlasses:
     This class encapsulates functionality for connecting to Aria glasses,
     streaming data, recording sessions, and processing gaze data.
     '''
-    def __init__(self, 
-                 config_path: Optional[str] = pkg_resources.resource_filename('aria_glasses', 'default_config.yaml')
-                 ) -> None:
+    def __init__(self, config_path: Optional[str] = None) -> None:
         '''
         Initialize the streaming client with device IP, config path, and visualization settings.
         
         Args:
             config_path (Optional[str]): Path to configuration file. If None, will use default settings.
         '''
+
+        if config_path is None:
+            config_path = resources.files("aria_control") / "default_config.yaml"
+
         self.config_manager = ConfigManager(config_path)
         
         self.device_ip = self.config_manager.get('device-ip', None)
@@ -74,16 +76,13 @@ class AriaGlasses:
             aria.set_log_level(aria.Level.Trace)
 
     def _setup_gaze_inference(self) -> None:
-        model_weights = pkg_resources.resource_filename(
-            'aria_glasses',
-            'eyetracking/inference/model/pretrained_weights/social_eyes_uncertainty_v1/weights.pth'
-        )
-        model_config = pkg_resources.resource_filename(
-            'aria_glasses',
-            'eyetracking/inference/model/pretrained_weights/social_eyes_uncertainty_v1/config.yaml'
-        )
+        base = resources.files("aria_control") / "eye_gaze" / "inference" / "model" / "pretrained_weights" / "social_eyes_uncertainty_v1"
+
+        model_weights = base / "weights.pth"
+        model_config = base / "config.yaml"
+
         self.model_device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.gaze_model = infer.EyeGazeInference(model_weights, model_config, self.model_device)
+        self.gaze_model = infer.EyeGazeInference(str(model_weights), str(model_config), self.model_device)
 
         torch.set_num_threads(1)
 
